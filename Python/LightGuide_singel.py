@@ -1,7 +1,7 @@
 # to compile to deployable executable use pyinstaller LightGuide.py
 import tkinter
 from tkinter.filedialog import askopenfilename
-from tkinter import *
+from tkinter import Frame, Label, Button, OptionMenu, StringVar, Canvas
 import serial
 import serial.tools.list_ports
 import pandas as pd
@@ -22,7 +22,7 @@ class SerialConnection:
         try:
             if self.connection:
                 self.connection.close()
-            self.connection = serial.Serial(port, '500000', timeout=0, stopbits=serial.STOPBITS_TWO)
+            self.connection = serial.Serial(port, 500000, timeout=0, stopbits=serial.STOPBITS_TWO)
             return True
         except Exception as e:
             print(f"連接失敗: {str(e)}")
