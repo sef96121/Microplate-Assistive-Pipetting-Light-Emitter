@@ -3,8 +3,8 @@ from tkinter import Frame,colorchooser
 import serial
 import serial.tools.list_ports
 from threading import Thread, Lock
-import queue
 from threading import Event
+import queue
 import time
 
 # LED板基本參數設定
@@ -250,8 +250,7 @@ class lightPanelGUI(Frame):
     # 初始化 
     def __init__(self, master=None):
         super().__init__(master)
-        self.master = master
-        self.pack()
+        self.pack(fill="both", expand=True)
         # 倒數狀態
         self.remaining = 0
         self.timer_job = None
@@ -259,9 +258,9 @@ class lightPanelGUI(Frame):
     # 建立元件
     def create_widgets(self):
         # 第一排 COM port 選單與連接按鈕
-        fm1 = tk.LabelFrame(self.master)
+        fm1 = tk.LabelFrame(self)
         fm1.config(text="Serial Port")
-        fm1.pack(side="top", fill="x", padx=6, pady=3)
+        fm1.pack(side="top", fill="x", padx=6, pady=3, anchor="nw")
         # COM port 選單
         self.port_var = tk.StringVar(self)
         self.port_list = get_available_ports()
@@ -289,7 +288,7 @@ class lightPanelGUI(Frame):
         # 第二排 顏色與亮度
         fm2 = tk.LabelFrame(self.master)
         fm2.config(text="LED Color and Brightness")
-        fm2.pack(side="top", fill="x", padx=6, pady=3)
+        fm2.pack(side="top", fill="x", padx=6, pady=3, anchor="nw")
         # 顏色選擇按鈕
         self.color_button = tk.Button(fm2, text="Pick LED Color", command=lambda: self.color_pick_box())
         self.color_button.pack(side="left", fill="y", expand=False, padx=2, pady=2)
@@ -311,7 +310,7 @@ class lightPanelGUI(Frame):
         # 第三排 倒數計時器
         fm3 = tk.LabelFrame(self.master)
         fm3.config(text="Timer")
-        fm3.pack(side="top", fill="x", padx=6, pady=3)
+        fm3.pack(side="top", fill="x", padx=6, pady=3, anchor="nw")
         # 倒數標籤
         self.timer_label = tk.Label(fm3, text="Countdown time(seconds):")
         self.timer_label.pack(side="left", fill="y", expand=False, padx=2, pady=2)
@@ -341,7 +340,7 @@ class lightPanelGUI(Frame):
         # 第四排 96 個 checkbox
         fm4 = tk.LabelFrame(self.master)
         fm4.config(text="LED Select")
-        fm4.pack(side="top", fill="x", padx=6, pady=6)
+        fm4.pack(side="top", fill="x", padx=6, pady=6, anchor="nw")
 
         # 建立 96 個 checkbox（8x12）+ 左側列標頭 + 上方欄標頭
         for i in range(boxRow + 1):
@@ -374,7 +373,11 @@ class lightPanelGUI(Frame):
     def make_left_text_checkbutton(self, parent, text, var, command=None):
         wrapper = tk.Frame(parent)
         lbl = tk.Label(wrapper, text=text)
-        cb  = tk.Checkbutton(wrapper, variable=var, command=command)
+        # 只有在有 command 的情況才加上該參數
+        if command is not None:
+            cb = tk.Checkbutton(wrapper, variable=var, command=command)
+        else:
+            cb = tk.Checkbutton(wrapper, variable=var)
         lbl.pack(side="left", padx=(0,4))
         cb.pack(side="left")
 
@@ -542,11 +545,11 @@ class lightPanelGUI(Frame):
 
     # 套用背景色並自動設定可讀的文字顏色
     def _apply_color(self, hex_color: str):
-         if not hex_color or not isinstance(hex_color, str):
+        if not hex_color or not isinstance(hex_color, str):
             return
-         fg = self._best_text_color(hex_color)
-         self.color_var.set(hex_color.upper())
-         self.color_display.config(bg=hex_color, fg=fg, textvariable=self.color_var)
+        fg = self._best_text_color(hex_color)
+        self.color_var.set(hex_color.upper())
+        self.color_display.config(bg=hex_color, fg=fg, textvariable=self.color_var)
 
     # 取得目前選擇的 RGB 顏色（0~255）
     def get_current_rgb255(self):
