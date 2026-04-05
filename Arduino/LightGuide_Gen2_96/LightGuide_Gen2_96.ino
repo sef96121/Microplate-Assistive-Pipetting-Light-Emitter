@@ -7,10 +7,9 @@
 /* Modify for Wemos D1 mini Module               */
 /* Modify Date: 2025/9/7                         */
 
+
 #include <FastLED.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 
 boolean newData = false;           //stores whether the program is presently receiving new data/input.
 const byte numChars = 128;         //determines the number of characters for the lists: receivedCharArray,tempStorage, rowLetter, and illuminationCommand
@@ -31,10 +30,6 @@ uint8_t bright = 255;         // LED bright setting, default=255
 CRGB led_color = CRGB::Blue;  // LED color, default= Blue
 
 CRGB leds[numColumns * numRows];
-// SSD1306 display setup
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 inline uint8_t clamp8(long v) {
   if (v < 0) return 0;
@@ -294,7 +289,6 @@ void recvWithStartEndMarkers() {
   }
 }
 
-/* Parse incoming serial data */
 void parseData() {
   char* strtokIndx;  // this is used by strtok() as an index
   long r = -1, g = -1, b = -1, bri = -1;
@@ -333,14 +327,6 @@ void parseData() {
 /* Displays the parsed information to the serial terminal; useful for debugging communication issues */
 void displayParsedCommand() {
   Serial.printf_P(PSTR("Command:%s, Address:%s%u, "), illuminationCommand, rowLetter, columnNumber);
-  display.clearDisplay();
-  display.setCursor(0,0);
-  display.setTextSize(1);
-  display.print(F("Barcode:"));
-  display.setCursor(0,16);
-  display.setTextSize(1);
-  display.print(String(plateBarcode));
-  display.display();
 }
 
 
@@ -407,19 +393,8 @@ void setup() {
 
   //illuminationTest();
   clearDisplay();
-
-  // Initialize SSD1306 OLED
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
-    Serial.println(F("SSD1306 allocation failed"));
-    // for(;;);
-  }
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0,0);
-  display.print(F("Barcode:"));
-  display.display();
 }
+
 
 void loop() {
   recvWithStartEndMarkers();
