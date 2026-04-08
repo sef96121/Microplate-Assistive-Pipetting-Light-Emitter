@@ -1,5 +1,7 @@
 # Microplate Assistive Pipetting Light Emitter
 
+這是對原作的改進，有擴充FW功能與並且修改PCB設計，請謹慎使用。
+
 The contents of this repository represent the design files and code needed to reproduce the electronics, firmware and GUI interface for the Microplate Assistive Pipetting Light Emitter. 
 
 <img src="https://github.com/pierrebaillargeon/Microplate-Assistive-Pipetting-Light-Emitter/blob/master/M.A.P.L.E.-Logo.png" width="500">
