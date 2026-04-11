@@ -167,10 +167,10 @@ class SerialSender:
 serial_connection = SerialConnection()
 
 # 統一的送指令介面
-def sendSerialCommand(command="S", s_row='A', s_col=1, textNote="empty", rgb=(0, 0, 255), bright=None):
+def sendSerialCommand(command="S", s_row='A', s_col=1, textNote="empty", rgb=(0, 0, 255), bright=None, times=1000):
     """
     L: <A,1,L,empty,0,0,0,BRIGHT>   只送一次（全域亮度）
-    S: <ROW,COL,S,NOTE,R,G,B>       逐孔位顏色（不帶亮度）
+    S: <ROW,COL,S,NOTE,R,G,B,time(ms)>       逐孔位顏色（不帶亮度）
     X: <A,1,X,empty>
     """
     # L:設定亮度指令處理
@@ -184,13 +184,14 @@ def sendSerialCommand(command="S", s_row='A', s_col=1, textNote="empty", rgb=(0,
         # textNote 這裡放 mask_hex（24 hex chars）
         r, g, b = [int(max(0, min(255, v))) for v in rgb]
         mask_hex = textNote
+        time_s = times  # 使用傳入的 times 參數
         if not isinstance(mask_hex, str) or len(mask_hex) != 24:
             raise ValueError("sendSerialCommand(M): mask_hex must be 24 hex chars")
-        serialString = f"<A,1,M,{mask_hex.upper()},{r},{g},{b}>"
+        serialString = f"<A,1,M,{mask_hex.upper()},{r},{g},{b},{time_s}>"
     # S:單孔位資料傳送指令處理
     elif command == "S":
         r, g, b = [int(max(0, min(255, v))) for v in rgb]
-        serialString = f"<{s_row},{s_col},S,{textNote},{r},{g},{b}>"
+        serialString = f"<{s_row},{s_col},S,{textNote},{r},{g},{b},{times}>"
     # X:關閉面板指令處理
     elif command == "X":
         serialString = "<A,1,X,empty>"
@@ -301,23 +302,23 @@ class lightPanelGUI(Frame):
         self.color_display.pack(side="left", fill="y", expand=False, padx=2, pady=2)
         self._apply_color(self.color_var.get())
         # 亮度調整 Spinbox
-        self.bright_label=tk.Label(fm2, text="LED brightness:")
+        self.bright_label=tk.Label(fm2, text="LED energy:")
         self.bright_label.pack(side="left", fill="y", expand=False, padx=12, pady=2)
         # 亮度 Spinbox
-        self.bright_var = tk.IntVar(value=255)
-        self.bright_spinbox = tk.Spinbox(fm2, from_=0, to=255, width=4, textvariable=self.bright_var)
+        self.bright_var = tk.DoubleVar(value=28.0)
+        self.bright_spinbox = tk.Spinbox(fm2, from_=0, to=28.0, increment=0.1, width=4, textvariable=self.bright_var)
         self.bright_spinbox.pack(side="left", fill="y", expand=False, padx=2, pady=2)
         # 第三排 倒數計時器
         fm3 = tk.LabelFrame(self.master)
-        fm3.config(text="Timer")
+        fm3.config(text="Time")
         fm3.pack(side="top", fill="x", padx=6, pady=3, anchor="nw")
         # 倒數標籤
-        self.timer_label = tk.Label(fm3, text="Countdown time(seconds):")
+        self.timer_label = tk.Label(fm3, text="LED Exposure time(s):")
         self.timer_label.pack(side="left", fill="y", expand=False, padx=2, pady=2)
         # 倒數 Spinbox
-        self.countDownTime_var = tk.IntVar(value=5)
+        self.countDownTime_var = tk.IntVar(value=15)
         self.timer_spinbox = tk.Spinbox(
-            fm3, from_=1, to=3600, width=6, textvariable=self.countDownTime_var,
+            fm3, from_=1, to=3600, width=8, textvariable=self.countDownTime_var,
             command=self.timer_sprinbox_changed
         )
         self.timer_spinbox.pack(side="left", fill="y", expand=False, padx=2, pady=2)
@@ -473,13 +474,16 @@ class lightPanelGUI(Frame):
             return  # 已在倒數中，避免重複啟動
 
         try:
-            self.remaining = int(self.timer_spinbox.get())
+            display_s = int(self.timer_spinbox.get())
         except ValueError:
-            self.remaining = 5
-            self.countDownTime_var.set(self.remaining)
+            display_s = 15  # 預設 15 秒
+            self.countDownTime_var.set(display_s)
 
-        if self.remaining <= 0:
+        if display_s <= 0:
             return
+
+        actual_s = display_s * 8
+        self.remaining = max(1, actual_s)  # 轉換到秒，至少 1 秒
         self.setallwell()
         self.timer_spinbox.config(state='disabled')
         self.start_button.config(state='disabled')
@@ -558,7 +562,7 @@ class lightPanelGUI(Frame):
     # 取得目前顏色與亮度的組合字串
     def get_color_payload(self):
         r, g, b = self._hex_to_rgb(self.color_var.get())
-        bright = int(self.bright_var.get())
+        bright = int(float(self.bright_var.get()/28.0*255))  # 轉換到 0~255 範圍
         return f"{r:02X}{g:02X}{b:02X}", bright
 
     # 產生目前勾選的孔位遮罩字串
@@ -587,7 +591,7 @@ class lightPanelGUI(Frame):
         """
         # 取得 UI 的顏色與亮度
         r, g, b = self._hex_to_rgb(self.color_var.get())
-        bright = int(max(0, min(255, self.bright_var.get())))
+        bright = int(float(self.bright_var.get()/28.0*255))  # 轉換到 0~255 範圍
 
         # 1) 先送一次全域亮度（只需一次）
         sendSerialCommand(command="L", bright=bright)
@@ -595,11 +599,12 @@ class lightPanelGUI(Frame):
         # 2) 逐孔位送顏色（只處理勾選的）
         mask_hex = self._selected_mask_hex()
         if int(mask_hex, 16) != 0:  # 有至少一顆要亮
-            sendSerialCommand(command="M", textNote=mask_hex, rgb=(r, g, b))
+            times_ms = self.countDownTime_var.get()*1000  # 轉換回實際時間
+            sendSerialCommand(command="M", textNote=mask_hex, rgb=(r, g, b), times=times_ms)
 # 主程式 入口
 if __name__ == '__main__':
     mainWindow = tk.Tk()
-    mainWindow.title("Timing Light Panel Controller")
+    mainWindow.title("Timing Light Panel Controller for Pixel 96 box")
     lightPanelGUIinstance = lightPanelGUI(mainWindow)
     mainWindow.protocol("WM_DELETE_WINDOW", onClosing)
     mainWindow.mainloop()
