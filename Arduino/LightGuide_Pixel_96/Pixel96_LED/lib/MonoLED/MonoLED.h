@@ -24,9 +24,6 @@ public:
     // Clear all LEDs
     void clear();
 
-    // Update display (send data to hardware)
-    void show();
-
     // Scan a single row for exposure timing / multiplex control
     void scanRow(int row);
 
@@ -46,8 +43,17 @@ public:
     int getRows() const { return _rows; }
     int getCols() const { return _cols; }
 
+    //on off control for all LEDs
+    void on();
+    void off();
+
     // Direct access to LED array (for compatibility)
     LEDState* leds;
+
+    //test led
+    void testSingleLED();
+    void testRow();
+    void testColumn();
 
 private:
     int _maxLeds;
